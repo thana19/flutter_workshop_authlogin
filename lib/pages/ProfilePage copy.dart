@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert' as convert;
+import 'package:http/http.dart' as http;
 import 'ScreenArguments.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -13,6 +14,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   SharedPreferences? sharePrefs;
   Map<String, dynamic> profile = {'username': '', 'name': '', "surname": ''};
+  Map<String, dynamic> token = {'access_token': ''};
 
   _getSharedPreferences() async {
     sharePrefs = await SharedPreferences.getInstance();
@@ -25,12 +27,55 @@ class _ProfilePageState extends State<ProfilePage> {
         profile = convert.jsonDecode(profileString);
       });
     }
+
+    var tokenString = sharePrefs!.getString('token');
+    print('tokenString');
+    print(tokenString);
+    if (tokenString != null) {
+      setState(() {
+        token = convert.jsonDecode(tokenString);
+      });
+    }
   }
 
   @override
   void initState() {
     super.initState();
     _getSharedPreferences();
+  }
+
+  _openEditPage() async {
+    //http get profile
+    var url = Uri.parse('https://api.thana.in.th/workshop/getprofile');
+    var response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ${token['access_token']}',
+      },
+    );
+    var body = convert.jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      print('response.body');
+      print(response.body);
+
+      //open EditProfilePage with ScreenArguments
+      Navigator.pushNamed(context, '/editprofile',
+          arguments: ScreenArguments(
+            body['name'],
+            body['surname'],
+          ));
+
+      //save profile to pref
+      sharePrefs = await SharedPreferences.getInstance();
+      await sharePrefs!.setString('profile', response.body);
+    } else {
+      print('fail');
+      print(body['message']);
+      _logout();
+    }
   }
 
   @override
@@ -84,12 +129,12 @@ class _ProfilePageState extends State<ProfilePage> {
         .pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
-  _openEditPage() {
-    //open EditProfilePage with ScreenArguments
-    Navigator.pushNamed(context, '/editprofile',
-        arguments: ScreenArguments(
-          profile['name'],
-          profile['surname'],
-        ));
-  }
+  // _openEditPage2() {
+  //   //open EditProfilePage with ScreenArguments
+  //   Navigator.pushNamed(context, '/editprofile',
+  //       arguments: ScreenArguments(
+  //         profile['name'],
+  //         profile['surname'],
+  //       ));
+  // }
 }
