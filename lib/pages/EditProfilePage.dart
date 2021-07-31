@@ -71,16 +71,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       print(response.body);
       print(body['message']);
       // _logout();
-
     }
   }
 
   _updateSharedPreferences() async {
-    //get token from pref
-    // var tokenString = prefs.getString('token');
-    // var token = convert.jsonDecode(tokenString!);
-    // print(token['access_token']);
-
     //http get profile
     var url = Uri.parse('https://api.thana.in.th/workshop/getprofile');
     var response = await http.get(
